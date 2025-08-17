@@ -1,0 +1,23 @@
+2025-08-16 23:09:06 [main] INFO  com.example.persistence.Application - Starting Application using Java 21.0.8 with PID 32485 (/Users/jingzhai/Documents/code/java/framework/dataflow-service/target/classes started by jingzhai in /Users/jingzhai/Documents/code/java/framework/dataflow-service)
+2025-08-16 23:09:06 [main] INFO  com.example.persistence.Application - The following 1 profile is active: "postgresql"
+2025-08-16 23:09:06 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-16 23:09:06 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 17 ms. Found 2 JPA repository interfaces.
+2025-08-16 23:09:06 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-08-16 23:09:06 [main] WARN  o.s.b.w.s.c.AnnotationConfigServletWebServerApplicationContext - Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.support.BeanDefinitionOverrideException: Invalid bean definition with name 'dataSourceRepository' defined in com.example.persistence.repository.DataSourceRepository defined in @EnableJpaRepositories declared on Application: Cannot register bean definition [Root bean: class=org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean; scope=; abstract=false; lazyInit=false; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in com.example.persistence.repository.DataSourceRepository defined in @EnableJpaRepositories declared on Application] for bean 'dataSourceRepository' since there is already [Root bean: class=org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean; scope=; abstract=false; lazyInit=false; autowireMode=0; dependencyCheck=0; autowireCandidate=true; primary=false; fallback=false; factoryBeanName=null; factoryMethodName=null; initMethodNames=null; destroyMethodNames=null; defined in com.example.persistence.repository.DataSourceRepository defined in @EnableJpaRepositories declared on RepositoryConfig] bound.
+2025-08-16 23:09:06 [main] INFO  o.s.b.a.l.ConditionEvaluationReportLogger - 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2025-08-16 23:09:06 [main] ERROR o.s.b.d.LoggingFailureAnalysisReporter - 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+The bean 'dataSourceRepository', defined in com.example.persistence.repository.DataSourceRepository defined in @EnableJpaRepositories declared on Application, could not be registered. A bean with that name has already been defined in com.example.persistence.repository.DataSourceRepository defined in @EnableJpaRepositories declared on RepositoryConfig and overriding is disabled.
+
+Action:
+
+Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
+

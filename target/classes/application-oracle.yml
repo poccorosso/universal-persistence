@@ -1,0 +1,62 @@
+# Oracle Database Configuration
+spring:
+  config:
+    activate:
+      on-profile: oracle
+  
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:XE
+    driver-class-name: oracle.jdbc.OracleDriver
+    username: ${DB_USERNAME:system}
+    password: ${DB_PASSWORD:password}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1 FROM DUAL
+  
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          batch_size: 50
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+        generate_statistics: false
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+
+# Cache Configuration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: initialCapacity=100,maximumSize=1000,expireAfterAccess=30m,expireAfterWrite=2h,recordStats
+    cache-names:
+      - users
+      - datasources
+      - query-results
+      - user-statistics
+
+# Logging configuration
+logging:
+  level:
+    com.example.persistence: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
+    com.zaxxer.hikari: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/application-oracle.log
