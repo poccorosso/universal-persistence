@@ -132,6 +132,96 @@ List<User> inserted = userRepository.batchInsert(users);
 List<User> updated = userRepository.batchUpdate(users);
 ```
 
+## LINQ-Style Query Examples
+
+The framework provides a C#-like LINQ-style query builder for more intuitive and readable queries.
+
+### 1. Basic Filtering (Where)
+
+Find all active users older than 25.
+
+```java
+List<User> users = linqQueryBuilderFactory.createQuery(User.class)
+    .where(user -> user.getStatus() == User.Status.ACTIVE && user.getAge() > 25)
+    .toList();
+```
+
+### 2. Complex Conditions
+
+Find active users who are older than 30 or have "admin" in their username.
+
+```java
+List<User> users = linqQueryBuilderFactory.createQuery(User.class)
+    .where(user -> user.getStatus() == User.Status.ACTIVE && (user.getAge() > 30 || user.getUsername().contains("admin")))
+    .toList();
+```
+
+### 3. Projections (Select)
+
+Select only the `username` and `email` of all users.
+
+```java
+List<Map<String, Object>> users = linqQueryBuilderFactory.createQuery(User.class)
+    .select("username", "email")
+    .toList();
+```
+
+Or project into a DTO:
+
+```java
+List<UserProjection> users = linqQueryBuilderFactory.createQuery(User.class)
+    .select(UserProjection.class)
+    .toList();
+```
+
+### 4. Ordering (OrderBy)
+
+Get the top 5 youngest users.
+
+```java
+List<User> users = linqQueryBuilderFactory.createQuery(User.class)
+    .orderBy(User::getAge)
+    .take(5)
+    .toList();
+```
+
+### 5. Pagination (Skip/Take)
+
+Get the second page of 10 active users.
+
+```java
+Page<User> userPage = linqQueryBuilderFactory.createQuery(User.class)
+    .where(user -> user.getStatus() == User.Status.ACTIVE)
+    .toPage(1, 10); // page index, page size
+```
+
+### 6. Aggregates
+
+Count the number of active users.
+
+```java
+long count = linqQueryBuilderFactory.createQuery(User.class)
+    .where(user -> user.getStatus() == User.Status.ACTIVE)
+    .count();
+```
+
+Check if any user has a specific email domain.
+
+```java
+boolean exists = linqQueryBuilderFactory.createQuery(User.class)
+    .any(user -> user.getEmail().endsWith("@example.com"));
+```
+
+### 7. Grouping (GroupBy)
+
+Group users by status and count them.
+
+```java
+Map<Object, Long> counts = linqQueryBuilderFactory.createQuery(User.class)
+    .groupBy(User::getStatus)
+    .count();
+```
+
 ## Supported Filter Operators
 
 | Operator | Description | Example |
