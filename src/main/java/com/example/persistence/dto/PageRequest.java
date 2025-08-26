@@ -46,6 +46,7 @@ public class PageRequest {
         /**
          * Sort direction
          */
+        @Builder.Default
         private SortDirection direction = SortDirection.ASC;
 
         public enum SortDirection {

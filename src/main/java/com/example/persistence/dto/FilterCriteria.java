@@ -56,4 +56,12 @@ public class FilterCriteria {
     public enum LogicalOperator {
         AND, OR
     }
+
+    /**
+     * Sort direction enum
+     */
+    public enum SortDirection {
+        ASC,
+        DESC
+    }
 }

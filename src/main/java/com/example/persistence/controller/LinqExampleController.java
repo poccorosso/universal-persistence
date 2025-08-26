@@ -2,6 +2,7 @@ package com.example.persistence.controller;
 
 import com.example.persistence.dto.BaseResponse;
 import com.example.persistence.dto.UserProjection;
+import com.example.persistence.entity.DataSourceEntity;
 import com.example.persistence.entity.User;
 import com.example.persistence.service.LinqExampleService;
 import lombok.RequiredArgsConstructor;
@@ -25,55 +26,13 @@ public class LinqExampleController {
     private final LinqExampleService linqExampleService;
     
     /**
-     * Get active users older than 25
+     * Get first user by uid
      */
-    @GetMapping("/active-users-older-than-25")
-    public ResponseEntity<BaseResponse<List<User>>> getActiveUsersOlderThan25() {
-        log.info("API: Getting active users older than 25");
-        try {
-            List<User> users = linqExampleService.findActiveUsersOlderThan25();
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Found %d active users older than 25", users.size())));
-        } catch (Exception e) {
-            log.error("Error getting active users older than 25", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get users"));
-        }
-    }
-    
-    /**
-     * Get users with complex conditions
-     */
-    @GetMapping("/users-complex-conditions")
-    public ResponseEntity<BaseResponse<List<User>>> getUsersWithComplexConditions() {
-        log.info("API: Getting users with complex conditions");
-        try {
-            List<User> users = linqExampleService.findUsersWithComplexConditions();
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Found %d users matching complex conditions", users.size())));
-        } catch (Exception e) {
-            log.error("Error getting users with complex conditions", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get users"));
-        }
-    }
-    
-    /**
-     * Get first user by username
-     */
-    @GetMapping("/first-user/{username}")
-    public ResponseEntity<User> getFirstUserByUsername(@PathVariable String username) {
-        log.info("API: Getting first user by username: {}", username);
-        User user = linqExampleService.findFirstUserByUsername(username);
+    @GetMapping("/first-user/{uid}")
+    public ResponseEntity<User> getFirstUserByUid(@PathVariable String uid) {
+        log.info("API: Getting first user by uid: {}", uid);
+        User user = linqExampleService.findFirstUserByUid(uid);
         return user != null ? ResponseEntity.ok(user) : ResponseEntity.notFound().build();
-    }
-    
-    /**
-     * Count active users
-     */
-    @GetMapping("/count-active-users")
-    public ResponseEntity<Map<String, Long>> countActiveUsers() {
-        log.info("API: Counting active users");
-        long count = linqExampleService.countActiveUsers();
-        return ResponseEntity.ok(Map.of("activeUserCount", count));
     }
     
     /**
@@ -85,17 +44,7 @@ public class LinqExampleController {
         boolean exists = linqExampleService.anyUsersWithEmailDomain("@" + domain);
         return ResponseEntity.ok(Map.of("exists", exists, "domain", "@" + domain));
     }
-    
-    /**
-     * Get top 5 youngest users
-     */
-    @GetMapping("/top-5-youngest")
-    public ResponseEntity<List<User>> getTop5YoungestUsers() {
-        log.info("API: Getting top 5 youngest users");
-        List<User> users = linqExampleService.getTop5YoungestUsers();
-        return ResponseEntity.ok(users);
-    }
-    
+
     /**
      * Get active users with pagination
      */
@@ -107,19 +56,7 @@ public class LinqExampleController {
         Page<User> users = linqExampleService.getActiveUsersWithPagination(page, size);
         return ResponseEntity.ok(users);
     }
-    
-    /**
-     * Find users by age range
-     */
-    @GetMapping("/users-by-age-range")
-    public ResponseEntity<List<User>> findUsersByAgeRange(
-            @RequestParam int minAge,
-            @RequestParam int maxAge) {
-        log.info("API: Finding users by age range: {} - {}", minAge, maxAge);
-        List<User> users = linqExampleService.findUsersByAgeRange(minAge, maxAge);
-        return ResponseEntity.ok(users);
-    }
-    
+
     /**
      * Find users with names starting with specific letter
      */
@@ -129,47 +66,7 @@ public class LinqExampleController {
         List<User> users = linqExampleService.findUsersByNameStartingWith(letter);
         return ResponseEntity.ok(users);
     }
-    
-    /**
-     * Find users by multiple statuses
-     */
-    @PostMapping("/users-by-statuses")
-    public ResponseEntity<List<User>> findUsersByStatuses(@RequestBody List<User.Status> statuses) {
-        log.info("API: Finding users by statuses: {}", statuses);
-        List<User> users = linqExampleService.findUsersByStatuses(statuses);
-        return ResponseEntity.ok(users);
-    }
-    
-    /**
-     * Check if all users have email addresses
-     */
-    @GetMapping("/all-users-have-email")
-    public ResponseEntity<Map<String, Boolean>> allUsersHaveEmail() {
-        log.info("API: Checking if all users have email addresses");
-        boolean allHaveEmail = linqExampleService.allUsersHaveEmail();
-        return ResponseEntity.ok(Map.of("allUsersHaveEmail", allHaveEmail));
-    }
-    
-    /**
-     * Get user count by status
-     */
-    @GetMapping("/user-count-by-status")
-    public ResponseEntity<Map<Object, Long>> getUserCountByStatus() {
-        log.info("API: Getting user count by status");
-        Map<Object, Long> counts = linqExampleService.getUserCountByStatus();
-        return ResponseEntity.ok(counts);
-    }
-    
-    /**
-     * Find adult users with complex sorting
-     */
-    @GetMapping("/adult-users-complex-sorting")
-    public ResponseEntity<List<User>> findAdultUsersWithComplexSorting() {
-        log.info("API: Finding adult users with complex sorting");
-        List<User> users = linqExampleService.findAdultUsersWithComplexSorting();
-        return ResponseEntity.ok(users);
-    }
-    
+
     /**
      * Get user basic info using Select
      */
@@ -203,12 +100,12 @@ public class LinqExampleController {
     }
     
     /**
-     * Get all usernames using Select
+     * Get all uids using Select
      */
-    @GetMapping("/usernames")
-    public ResponseEntity<List<String>> getAllUsernames() {
-        log.info("API: Getting all usernames using LINQ Select");
-        List<String> usernames = linqExampleService.getAllUsernames();
+    @GetMapping("/uids")
+    public ResponseEntity<List<String>> getAllUids() {
+        log.info("API: Getting all uids using LINQ Select");
+        List<String> usernames = linqExampleService.getAllUids();
         return ResponseEntity.ok(usernames);
     }
     
@@ -222,5 +119,21 @@ public class LinqExampleController {
         log.info("API: Getting user basic info with pagination using LINQ Select");
         Page<Map<String, Object>> users = linqExampleService.getUserBasicInfoWithPagination(page, size);
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Find active data sources by type
+     */
+    @GetMapping("/active-datasources/{type}")
+    public ResponseEntity<BaseResponse<List<DataSourceEntity>>> findActiveDataSourcesByType(@PathVariable DataSourceEntity.DatabaseType type) {
+        log.info("API: Finding active data sources by type: {}", type);
+        try {
+            List<DataSourceEntity> dataSources = linqExampleService.findActiveDataSourcesByType(type);
+            return ResponseEntity.ok(BaseResponse.success(dataSources,
+                    String.format("Found %d active data sources of type %s", dataSources.size(), type)));
+        } catch (Exception e) {
+            log.error("Error finding active data sources by type", e);
+            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to find data sources"));
+        }
     }
 }

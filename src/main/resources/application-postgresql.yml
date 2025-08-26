@@ -5,10 +5,10 @@ spring:
       on-profile: postgresql
   
   datasource:
-    url: jdbc:postgresql://localhost:5432/${DB_NAME:your_database}
+    url: jdbc:postgresql://localhost:5432/mydb
     driver-class-name: org.postgresql.Driver
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:password}
+    username: ${DB_USERNAME:myuser}
+    password: ${DB_PASSWORD:secret}
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -47,16 +47,3 @@ spring:
       - query-results
       - user-statistics
 
-# Logging configuration
-logging:
-  level:
-    com.example.persistence: INFO
-    org.springframework.web: WARN
-    org.hibernate.SQL: WARN
-    org.hibernate.type.descriptor.sql.BasicBinder: ERROR
-    com.zaxxer.hikari: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
-  file:
-    name: logs/application-postgresql.log

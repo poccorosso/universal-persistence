@@ -17,29 +17,18 @@ public interface UserRepository extends BaseRepository<User, Long> {
     /**
      * Find user by username
      */
-    Optional<User> findByUsernameAndDeletedFalse(String username);
-    
+    Optional<User> findByUidAndDeletedFalse(String uid);
+
     /**
      * Find user by email
      */
     Optional<User> findByEmailAndDeletedFalse(String email);
-    
-    /**
-     * Find active users
-     */
-    List<User> findByStatusAndDeletedFalse(User.Status status);
-    
-    /**
-     * Find users by age range
-     */
-    List<User> findByAgeBetweenAndDeletedFalse(Integer minAge, Integer maxAge);
-    
+
     /**
      * Custom JPQL query
      */
-    @Query("SELECT u FROM User u WHERE u.fullName LIKE %:name% AND u.status = :status AND u.deleted = false")
-    List<User> findByFullNameContainingAndStatus(@Param("name") String name, 
-                                                @Param("status") User.Status status);
+    @Query("SELECT u FROM User u WHERE u.fullName LIKE %:name% AND  u.deleted = false")
+    List<User> findByFullNameContainingAndStatus(@Param("name") String name);
     
     /**
      * Native SQL query example
@@ -49,9 +38,9 @@ public interface UserRepository extends BaseRepository<User, Long> {
     List<User> findUsersOlderThan(@Param("age") Integer age);
     
     /**
-     * Check if username exists
+     * Check if uid exists
      */
-    boolean existsByUsernameAndDeletedFalse(String username);
+    boolean existsByUidAndDeletedFalse(String uid);
     
     /**
      * Check if email exists

@@ -1,9 +1,14 @@
 package com.example.persistence.dto;
 
+import jakarta.persistence.Column;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDateTime;
 
 /**
  * DTO for user projections
@@ -15,9 +20,11 @@ import lombok.NoArgsConstructor;
 public class UserProjection {
     
     private Long id;
-    private String username;
+    private String uid;
     private String email;
     private String fullName;
-    private Integer age;
-    private String status;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
+    private String createdBy;
+    private String updatedBy;
 }

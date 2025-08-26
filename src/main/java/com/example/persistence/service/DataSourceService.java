@@ -260,7 +260,7 @@ public class DataSourceService {
         return !existing.getHost().equals(updated.getHost()) ||
                !existing.getPort().equals(updated.getPort()) ||
                !existing.getDatabaseName().equals(updated.getDatabaseName()) ||
-               !existing.getUsername().equals(updated.getUsername()) ||
+               !existing.getUid().equals(updated.getUid()) ||
                !existing.getPassword().equals(updated.getPassword()) ||
                !existing.getDatabaseType().equals(updated.getDatabaseType());
     }

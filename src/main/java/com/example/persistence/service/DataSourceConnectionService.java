@@ -47,7 +47,7 @@ public class DataSourceConnectionService {
         try {
             HikariConfig config = new HikariConfig();
             config.setJdbcUrl(dataSourceEntity.buildConnectionUrl());
-            config.setUsername(dataSourceEntity.getUsername());
+            config.setUsername(dataSourceEntity.getUid());
             config.setPassword(dataSourceEntity.getPassword());
             config.setDriverClassName(dataSourceEntity.getDriverClassName());
             

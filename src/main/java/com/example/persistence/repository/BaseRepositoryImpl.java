@@ -7,15 +7,8 @@ import com.example.persistence.util.LinqQueryBuilder;
 import com.example.persistence.util.QueryBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
-import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,7 +27,6 @@ public class BaseRepositoryImpl<T, ID extends Serializable>
         extends SimpleJpaRepository<T, ID> implements BaseRepository<T, ID> {
 
     private final EntityManager entityManager;
-    private final CriteriaBuilder criteriaBuilder;
     private final QueryBuilder<T> queryBuilder;
     private final Class<T> entityClass;
     private final JpaEntityInformation<T, ID> entityInformation;
@@ -43,7 +35,6 @@ public class BaseRepositoryImpl<T, ID extends Serializable>
                               EntityManager entityManager) {
         super(entityInformation, entityManager);
         this.entityManager = entityManager;
-        this.criteriaBuilder = entityManager.getCriteriaBuilder();
         this.entityClass = entityInformation.getJavaType();
         this.entityInformation = entityInformation;
         this.queryBuilder = new QueryBuilder<>(entityClass, entityManager);
@@ -55,19 +46,10 @@ public class BaseRepositoryImpl<T, ID extends Serializable>
     public List<T> findByFilters(List<FilterCriteria> filters) {
         log.debug("Finding entities by filters: {}", filters);
         try {
-            Predicate predicate = queryBuilder.buildPredicate(filters);
-            if (predicate == null) {
+            if (filters == null || filters.isEmpty()) {
                 return findAll();
             }
-
-            CriteriaQuery<T> query = criteriaBuilder.createQuery(entityClass);
-            Root<T> root = query.from(entityClass);
-            query.select(root).where(predicate);
-
-            TypedQuery<T> typedQuery = entityManager.createQuery(query);
-            List<T> results = typedQuery.getResultList();
-            log.debug("Found {} entities matching filters", results.size());
-            return results;
+            return queryBuilder.executeQuery(filters);
         } catch (Exception e) {
             log.error("Error finding entities by filters: {}", e.getMessage(), e);
             throw e;
@@ -79,52 +61,69 @@ public class BaseRepositoryImpl<T, ID extends Serializable>
                                                  PageRequest pageRequest) {
         log.debug("Finding entities by filters with pagination: filters={}, pageRequest={}", filters, pageRequest);
         try {
-            Predicate predicate = queryBuilder.buildPredicate(filters);
-            Pageable pageable = queryBuilder.buildPageable(pageRequest);
-
-            // Get total count
-            CriteriaQuery<Long> countQuery = criteriaBuilder.createQuery(Long.class);
-            Root<T> countRoot = countQuery.from(entityClass);
-            countQuery.select(criteriaBuilder.count(countRoot));
-            if (predicate != null) {
-                countQuery.where(predicate);
+            if (filters == null || filters.isEmpty()) {
+                // If no filters, use findAll with pagination
+                int page = pageRequest != null ? pageRequest.getPage() : 0;
+                int size = pageRequest != null ? pageRequest.getSize() : 20;
+                int offset = page * size;
+                
+                // Get total count
+                long totalElements = count();
+                
+                // Get page content
+                jakarta.persistence.Query query = entityManager.createQuery("FROM " + entityClass.getSimpleName());
+                query.setFirstResult(offset);
+                query.setMaxResults(size);
+                
+                @SuppressWarnings("unchecked")
+                List<T> content = query.getResultList();
+                
+                PageResponse<T> response = PageResponse.<T>builder()
+                        .content(content)
+                        .totalElements(totalElements)
+                        .totalPages((int) Math.ceil((double) totalElements / size))
+                        .currentPage(page)
+                        .pageSize(size)
+                        .build();
+                
+                log.debug("Found {} entities in page {} of {}", content.size(),
+                        page, response.getTotalPages());
+                return response;
             }
-            long totalElements = entityManager.createQuery(countQuery).getSingleResult();
-
-            // Get page content
-            CriteriaQuery<T> query = criteriaBuilder.createQuery(entityClass);
-            Root<T> root = query.from(entityClass);
-            query.select(root);
-            if (predicate != null) {
-                query.where(predicate);
+            
+            // Build order by clause from page request
+            String orderByField = null;
+            org.springframework.data.domain.Sort.Direction direction = null;
+            
+            if (pageRequest != null && pageRequest.getSorts() != null && !pageRequest.getSorts().isEmpty()) {
+                PageRequest.SortCriteria sort = pageRequest.getSorts().get(0); // Use first sort criteria
+                orderByField = sort.getField();
+                direction = sort.getDirection() == PageRequest.SortCriteria.SortDirection.ASC ? 
+                        org.springframework.data.domain.Sort.Direction.ASC : 
+                        org.springframework.data.domain.Sort.Direction.DESC;
             }
-
-            // Apply sorting
-            if (pageable.getSort().isSorted()) {
-                query.orderBy(pageable.getSort().stream()
-                        .map(order -> order.isAscending() ?
-                                criteriaBuilder.asc(root.get(order.getProperty())) :
-                                criteriaBuilder.desc(root.get(order.getProperty())))
-                        .toArray(jakarta.persistence.criteria.Order[]::new));
-            }
-
-            TypedQuery<T> typedQuery = entityManager.createQuery(query);
-            typedQuery.setFirstResult((int) pageable.getOffset());
-            typedQuery.setMaxResults(pageable.getPageSize());
-
-            List<T> content = typedQuery.getResultList();
-            Page<T> page = new PageImpl<>(content, pageable, totalElements);
-
+            
+            // Get total count using QueryBuilder
+            long totalElements = queryBuilder.executeCountQuery(filters);
+            
+            // Calculate pagination parameters
+            int page = pageRequest != null ? pageRequest.getPage() : 0;
+            int size = pageRequest != null ? pageRequest.getSize() : 20;
+            int offset = page * size;
+            
+            // Get page content using QueryBuilder with pagination
+            List<T> content = queryBuilder.executeQuery(filters, orderByField, direction, offset, size);
+            
             PageResponse<T> response = PageResponse.<T>builder()
-                    .content(page.getContent())
-                    .totalElements(page.getTotalElements())
-                    .totalPages(page.getTotalPages())
-                    .currentPage(page.getNumber())
-                    .pageSize(page.getSize())
+                    .content(content)
+                    .totalElements(totalElements)
+                    .totalPages((int) Math.ceil((double) totalElements / size))
+                    .currentPage(page)
+                    .pageSize(size)
                     .build();
-
-            log.debug("Found {} entities in page {} of {}", page.getContent().size(),
-                    page.getNumber(), page.getTotalPages());
+            
+            log.debug("Found {} entities in page {} of {}", content.size(),
+                    page, response.getTotalPages());
             return response;
         } catch (Exception e) {
             log.error("Error finding entities by filters with pagination: {}", e.getMessage(), e);

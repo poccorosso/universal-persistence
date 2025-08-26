@@ -36,11 +36,11 @@ public class UserService {
     @Transactional
     @CacheEvict(value = {"users", "user-statistics"}, allEntries = true)
     public User createUser(User user) {
-        log.info("Creating user: {}", user.getUsername());
+        log.info("Creating user: {}", user.getUid());
         
         // Validate unique constraints
-        if (userRepository.existsByUsernameAndDeletedFalse(user.getUsername())) {
-            throw new IllegalArgumentException("Username already exists: " + user.getUsername());
+        if (userRepository.existsByUidAndDeletedFalse(user.getUid())) {
+            throw new IllegalArgumentException("Username already exists: " + user.getUid());
         }
         if (userRepository.existsByEmailAndDeletedFalse(user.getEmail())) {
             throw new IllegalArgumentException("Email already exists: " + user.getEmail());
@@ -108,9 +108,9 @@ public class UserService {
      * Find user by username
      */
     @Cacheable(value = "users", key = "'username:' + #username")
-    public Optional<User> findByUsername(String username) {
-        log.debug("Finding user by username: {}", username);
-        return userRepository.findByUsernameAndDeletedFalse(username);
+    public Optional<User> findByUid(String uid) {
+        log.debug("Finding user by uid: {}", uid);
+        return userRepository.findByUidAndDeletedFalse(uid);
     }
     
     /**
@@ -224,21 +224,5 @@ public class UserService {
         log.info("Batch deleting {} users", ids.size());
         userRepository.batchDeleteByIds(ids);
         log.info("Successfully deleted {} users", ids.size());
-    }
-    
-    /**
-     * Find users by status
-     */
-    public List<User> findUsersByStatus(User.Status status) {
-        log.debug("Finding users by status: {}", status);
-        return userRepository.findByStatusAndDeletedFalse(status);
-    }
-    
-    /**
-     * Find users by age range
-     */
-    public List<User> findUsersByAgeRange(Integer minAge, Integer maxAge) {
-        log.debug("Finding users by age range: {} - {}", minAge, maxAge);
-        return userRepository.findByAgeBetweenAndDeletedFalse(minAge, maxAge);
     }
 }

@@ -30,7 +30,7 @@ public class UserController {
      */
     @PostMapping
     public ResponseEntity<BaseResponse<User>> createUser(@RequestBody User user) {
-        log.info("Creating user via API: {}", user.getUsername());
+        log.info("Creating user via API: {}", user.getUid());
         try {
             User created = userService.createUser(user);
             return ResponseEntity.ok(BaseResponse.success(created, "User created successfully"));
@@ -72,12 +72,12 @@ public class UserController {
     /**
      * Get user by username
      */
-    @GetMapping("/username/{username}")
-    public ResponseEntity<BaseResponse<User>> getUserByUsername(@PathVariable String username) {
-        log.debug("Getting user by username: {}", username);
-        return userService.findByUsername(username)
+    @GetMapping("/uid/{uid}")
+    public ResponseEntity<BaseResponse<User>> getUserByUid(@PathVariable String uid) {
+        log.debug("Getting user by uid: {}", uid);
+        return userService.findByUid(uid)
                 .map(user -> ResponseEntity.ok(BaseResponse.success(user, "User found")))
-                .orElse(ResponseEntity.ok(BaseResponse.notFound("User not found with username: " + username)));
+                .orElse(ResponseEntity.ok(BaseResponse.notFound("User not found with uid: " + uid)));
     }
     
     /**
@@ -273,39 +273,6 @@ public class UserController {
         } catch (Exception e) {
             log.error("Error batch deleting users", e);
             return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to delete users"));
-        }
-    }
-    
-    /**
-     * Get users by status
-     */
-    @GetMapping("/status/{status}")
-    public ResponseEntity<BaseResponse<List<User>>> getUsersByStatus(@PathVariable User.Status status) {
-        log.debug("Getting users by status: {}", status);
-        try {
-            List<User> users = userService.findUsersByStatus(status);
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Found %d users with status %s", users.size(), status)));
-        } catch (Exception e) {
-            log.error("Error getting users by status", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get users by status"));
-        }
-    }
-    
-    /**
-     * Get users by age range
-     */
-    @GetMapping("/age/{minAge}/{maxAge}")
-    public ResponseEntity<BaseResponse<List<User>>> getUsersByAgeRange(@PathVariable Integer minAge, 
-                                                        @PathVariable Integer maxAge) {
-        log.debug("Getting users by age range: {} - {}", minAge, maxAge);
-        try {
-            List<User> users = userService.findUsersByAgeRange(minAge, maxAge);
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Found %d users in age range %d-%d", users.size(), minAge, maxAge)));
-        } catch (Exception e) {
-            log.error("Error getting users by age range", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get users by age range"));
         }
     }
 }

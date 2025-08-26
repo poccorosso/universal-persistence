@@ -1,186 +1,276 @@
 package com.example.persistence.util;
 
 import com.example.persistence.dto.FilterCriteria;
-import com.example.persistence.dto.PageRequest;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.criteria.*;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
- * Dynamic query builder with LINQ-style support using JPA CriteriaBuilder
+ * Dynamic query builder with LINQ-style support using HQL (Hibernate Query Language)
  */
 @Slf4j
 public class QueryBuilder<T> {
 
     private final Class<T> entityClass;
     private final EntityManager entityManager;
-    private final CriteriaBuilder criteriaBuilder;
+    private final String entityName;
 
     public QueryBuilder(Class<T> entityClass, EntityManager entityManager) {
         this.entityClass = entityClass;
         this.entityManager = entityManager;
-        this.criteriaBuilder = entityManager.getCriteriaBuilder();
-        log.debug("Created QueryBuilder for entity: {}", entityClass.getSimpleName());
+        this.entityName = entityClass.getSimpleName();
+        log.debug("Created QueryBuilder for entity: {}", entityName);
     }
     
     /**
      * Create LINQ-style query builder
      */
     public LinqQueryBuilder<T> linq() {
-        log.debug("Creating LINQ-style query builder for entity: {}", entityClass.getSimpleName());
+        log.debug("Creating LINQ-style query builder for entity: {}", entityName);
         return new LinqQueryBuilder<>(entityClass, entityManager);
     }
 
-    public Predicate buildPredicate(List<FilterCriteria> filters) {
+    /**
+     * Build complete HQL query with WHERE clause
+     */
+    public String buildQuery(List<FilterCriteria> filters) {
+        return buildQuery(filters, null, null);
+    }
+
+    /**
+     * Build complete HQL query with WHERE clause and ORDER BY
+     */
+    public String buildQuery(List<FilterCriteria> filters, String orderByField, Sort.Direction direction) {
+        StringBuilder query = new StringBuilder("FROM ").append(entityName);
+        
+        String whereClause = buildWhereClause(filters);
+        query.append(whereClause);
+        
+        if (orderByField != null && !orderByField.trim().isEmpty()) {
+            String hqlField = QueryUtils.convertToHqlField(orderByField);
+            String orderDirection = direction == Sort.Direction.DESC ? "DESC" : "ASC";
+            query.append(" ORDER BY ").append(hqlField).append(" ").append(orderDirection);
+        }
+        
+        log.debug("Built query: {}", query);
+        return query.toString();
+    }
+
+    /**
+     * Build count query with WHERE clause
+     */
+    public String buildCountQuery(List<FilterCriteria> filters) {
+        StringBuilder query = new StringBuilder("SELECT COUNT(*) FROM ").append(entityName);
+        
+        String whereClause = buildWhereClause(filters);
+        query.append(whereClause);
+        
+        log.debug("Built count query: {}", query);
+        return query.toString();
+    }
+
+    /**
+     * Execute query and return results
+     */
+    public List<T> executeQuery(List<FilterCriteria> filters) {
+        return executeQuery(filters, null, null);
+    }
+
+    /**
+     * Execute query with ordering and return results
+     */
+    public List<T> executeQuery(List<FilterCriteria> filters, String orderByField, Sort.Direction direction) {
+        String queryString = buildQuery(filters, orderByField, direction);
+        jakarta.persistence.Query query = entityManager.createQuery(queryString);
+        
+        setQueryParameters(query, filters);
+        
+        @SuppressWarnings("unchecked")
+        List<T> result = query.getResultList();
+        log.debug("Executed query, found {} results", result.size());
+        return result;
+    }
+
+    /**
+     * Execute query with ordering and pagination
+     */
+    public List<T> executeQuery(List<FilterCriteria> filters, String orderByField, Sort.Direction direction, int offset, int limit) {
+        String queryString = buildQuery(filters, orderByField, direction);
+        jakarta.persistence.Query query = entityManager.createQuery(queryString);
+        
+        setQueryParameters(query, filters);
+        query.setFirstResult(offset);
+        query.setMaxResults(limit);
+        
+        @SuppressWarnings("unchecked")
+        List<T> result = query.getResultList();
+        log.debug("Executed query with pagination, found {} results (offset: {}, limit: {})", result.size(), offset, limit);
+        return result;
+    }
+
+    /**
+     * Execute count query and return result
+     */
+    public long executeCountQuery(List<FilterCriteria> filters) {
+        String queryString = buildCountQuery(filters);
+        jakarta.persistence.Query query = entityManager.createQuery(queryString);
+        
+        setQueryParameters(query, filters);
+        
+        Long result = (Long) query.getSingleResult();
+        log.debug("Executed count query, result: {}", result);
+        return result != null ? result : 0L;
+    }
+
+    /**
+     * Set query parameters based on filter criteria
+     */
+    private void setQueryParameters(jakarta.persistence.Query query, List<FilterCriteria> filters) {
         if (filters == null || filters.isEmpty()) {
-            log.debug("No filters provided, returning null predicate");
-            return null;
+            return;
+        }
+        
+        for (FilterCriteria filter : filters) {
+            String field = filter.getField();
+            Object value = filter.getValue();
+            String hqlField = QueryUtils.convertToHqlField(field);
+            
+            if (value != null) {
+                switch (filter.getOperator()) {
+                    case EQUALS:
+                    case NOT_EQUALS:
+                    case GREATER_THAN:
+                    case GREATER_EQUAL:
+                    case LESS_THAN:
+                    case LESS_EQUAL:
+                        query.setParameter(QueryUtils.sanitizeParameterName(hqlField), value);
+                        break;
+                    case LIKE:
+                    case NOT_LIKE:
+                    case STARTS_WITH:
+                    case ENDS_WITH:
+                    case CONTAINS:
+                        String pattern;
+                        if (filter.getOperator() == FilterCriteria.FilterOperator.STARTS_WITH) {
+                            pattern = value.toString() + "%";
+                        } else if (filter.getOperator() == FilterCriteria.FilterOperator.ENDS_WITH) {
+                            pattern = "%" + value.toString();
+                        } else {
+                            pattern = "%" + value.toString() + "%";
+                        }
+                        query.setParameter(QueryUtils.sanitizeParameterName(hqlField), pattern);
+                        break;
+                    case IN:
+                    case NOT_IN:
+                        query.setParameter(QueryUtils.sanitizeParameterName(hqlField), value);
+                        break;
+                    case BETWEEN:
+                        Collection<?> values;
+                        if (value.getClass().isArray()) {
+                            values = Arrays.asList((Object[]) value);
+                        } else {
+                            values = (Collection<?>) value;
+                        }
+                        if (values.size() == 2) {
+                            Object[] array = values.toArray();
+                            query.setParameter(QueryUtils.sanitizeParameterName(hqlField + "_from"), array[0]);
+                            query.setParameter(QueryUtils.sanitizeParameterName(hqlField + "_to"), array[1]);
+                        }
+                        break;
+                    case IS_NULL:
+                    case IS_NOT_NULL:
+                        // No parameters to set for NULL checks
+                        break;
+                }
+            }
+        }
+    }
+
+    public String buildWhereClause(List<FilterCriteria> filters) {
+        if (filters == null || filters.isEmpty()) {
+            log.debug("No filters provided, returning empty where clause");
+            return "";
         }
 
-        log.debug("Building predicate with {} filters", filters.size());
-        CriteriaQuery<T> query = criteriaBuilder.createQuery(entityClass);
-        Root<T> root = query.from(entityClass);
-
-        List<Predicate> predicates = new ArrayList<>();
-        List<Predicate> orPredicates = new ArrayList<>();
+        log.debug("Building where clause with {} filters", filters.size());
+        
+        List<String> whereConditions = new ArrayList<>();
+        List<String> orConditions = new ArrayList<>();
 
         for (FilterCriteria filter : filters) {
             try {
-                Predicate predicate = buildSinglePredicate(root, filter);
-                if (predicate != null) {
+                String condition = buildSingleCondition(filter);
+                if (condition != null && !condition.isEmpty()) {
                     if (filter.getLogicalOperator() == FilterCriteria.LogicalOperator.OR) {
-                        orPredicates.add(predicate);
-                        log.trace("Added OR predicate for field: {}", filter.getField());
+                        orConditions.add(condition);
+                        log.trace("Added OR condition for field: {}", filter.getField());
                     } else {
-                        predicates.add(predicate);
-                        log.trace("Added AND predicate for field: {}", filter.getField());
+                        whereConditions.add(condition);
+                        log.trace("Added AND condition for field: {}", filter.getField());
                     }
                 }
             } catch (Exception e) {
-                log.error("Failed to build predicate for filter: {}", filter, e);
+                log.error("Failed to build condition for filter: {}", filter, e);
                 throw e;
             }
         }
 
-        // Combine predicates
-        Predicate finalPredicate = null;
-        if (!predicates.isEmpty()) {
-            finalPredicate = criteriaBuilder.and(predicates.toArray(new Predicate[0]));
-        }
-        if (!orPredicates.isEmpty()) {
-            Predicate orPredicate = criteriaBuilder.or(orPredicates.toArray(new Predicate[0]));
-            finalPredicate = finalPredicate == null ? orPredicate :
-                criteriaBuilder.and(finalPredicate, orPredicate);
+        // Combine conditions
+        StringBuilder whereClause = new StringBuilder();
+        boolean hasWhereConditions = !whereConditions.isEmpty();
+        boolean hasOrConditions = !orConditions.isEmpty();
+
+        if (hasWhereConditions || hasOrConditions) {
+            whereClause.append(" WHERE ");
+            
+            List<String> allConditions = new ArrayList<>();
+            if (hasWhereConditions) {
+                allConditions.add(String.join(" AND ", whereConditions));
+            }
+            if (hasOrConditions) {
+                String orClause = "(" + String.join(" OR ", orConditions) + ")";
+                allConditions.add(orClause);
+            }
+            
+            whereClause.append(String.join(" AND ", allConditions));
         }
 
-        return finalPredicate;
+        return whereClause.toString();
     }
-    
 
-
-    @SuppressWarnings("unchecked")
-    private Predicate buildSinglePredicate(Root<T> root, FilterCriteria filter) {
+    private String buildSingleCondition(FilterCriteria filter) {
         try {
-            Path<?> path = getFieldPath(root, filter.getField());
+            String field = filter.getField();
             Object value = filter.getValue();
+            
+            log.trace("Building condition: {} {} {}", field, filter.getOperator(), value);
 
-            log.trace("Building predicate: {} {} {}", filter.getField(), filter.getOperator(), value);
-
-            switch (filter.getOperator()) {
-                case EQUALS:
-                    return criteriaBuilder.equal(path, value);
-                case NOT_EQUALS:
-                    return criteriaBuilder.notEqual(path, value);
-                case GREATER_THAN:
-                    return criteriaBuilder.greaterThan((Path<Comparable>) path, (Comparable) value);
-                case GREATER_EQUAL:
-                    return criteriaBuilder.greaterThanOrEqualTo((Path<Comparable>) path, (Comparable) value);
-                case LESS_THAN:
-                    return criteriaBuilder.lessThan((Path<Comparable>) path, (Comparable) value);
-                case LESS_EQUAL:
-                    return criteriaBuilder.lessThanOrEqualTo((Path<Comparable>) path, (Comparable) value);
-                case LIKE:
-                    return criteriaBuilder.like((Path<String>) path, "%" + value + "%");
-                case NOT_LIKE:
-                    return criteriaBuilder.notLike((Path<String>) path, "%" + value + "%");
-                case STARTS_WITH:
-                    return criteriaBuilder.like((Path<String>) path, value.toString() + "%");
-                case ENDS_WITH:
-                    return criteriaBuilder.like((Path<String>) path, "%" + value.toString());
-                case CONTAINS:
-                    return criteriaBuilder.like((Path<String>) path, "%" + value.toString() + "%");
-                case IN:
-                    return path.in((Collection<?>) value);
-                case NOT_IN:
-                    return criteriaBuilder.not(path.in((Collection<?>) value));
-                case IS_NULL:
-                    return criteriaBuilder.isNull(path);
-                case IS_NOT_NULL:
-                    return criteriaBuilder.isNotNull(path);
-                case BETWEEN:
-                    if (value instanceof List && ((List<?>) value).size() == 2) {
-                        List<?> values = (List<?>) value;
-                        return criteriaBuilder.between((Path<Comparable>) path,
-                            (Comparable) values.get(0), (Comparable) values.get(1));
-                    }
-                    break;
-            }
-        } catch (Exception e) {
-            log.error("Failed to build query condition for field: {}", filter.getField(), e);
-            throw new RuntimeException("Failed to build query condition: " + filter.getField(), e);
-        }
-
-        return null;
-    }
-
-    private Path<?> getFieldPath(Root<T> root, String fieldName) {
-        try {
             // Handle nested field paths (e.g., "user.name")
-            String[] fieldParts = fieldName.split("\\.");
-            Path<?> path = root;
+            String hqlField = QueryUtils.convertToHqlField(field);
 
-            for (String fieldPart : fieldParts) {
-                path = path.get(fieldPart);
-            }
-
-            return path;
+            return switch (filter.getOperator()) {
+                case EQUALS -> QueryUtils.formatCondition(hqlField, "=", value);
+                case NOT_EQUALS -> QueryUtils.formatCondition(hqlField, "<>", value);
+                case GREATER_THAN -> QueryUtils.formatCondition(hqlField, ">", value);
+                case GREATER_EQUAL -> QueryUtils.formatCondition(hqlField, ">=", value);
+                case LESS_THAN -> QueryUtils.formatCondition(hqlField, "<", value);
+                case LESS_EQUAL -> QueryUtils.formatCondition(hqlField, "<=", value);
+                case LIKE, CONTAINS -> QueryUtils.formatLikeCondition(hqlField, value, true, true, false);
+                case NOT_LIKE -> QueryUtils.formatLikeCondition(hqlField, value, true, true, true);
+                case STARTS_WITH -> QueryUtils.formatLikeCondition(hqlField, value, false, true, false);
+                case ENDS_WITH -> QueryUtils.formatLikeCondition(hqlField, value, true, false, false);
+                case IN -> QueryUtils.formatInCondition(hqlField, value, false);
+                case NOT_IN -> QueryUtils.formatInCondition(hqlField, value, true);
+                case IS_NULL -> hqlField + " IS NULL";
+                case IS_NOT_NULL -> hqlField + " IS NOT NULL";
+                case BETWEEN -> QueryUtils.formatBetweenCondition(hqlField, value);
+                default -> throw new IllegalArgumentException("Unsupported operator: " + filter.getOperator());
+            };
         } catch (Exception e) {
-            log.error("Failed to get field path: {}", fieldName, e);
-            throw new RuntimeException("Failed to get field path: " + fieldName, e);
+            log.error("Failed to build condition for filter: {}", filter, e);
+            throw new RuntimeException("Failed to build condition: " + e.getMessage(), e);
         }
-    }
-    
-    public Pageable buildPageable(PageRequest pageRequest) {
-        if (pageRequest == null) {
-            log.debug("No page request provided, using default pagination");
-            return org.springframework.data.domain.PageRequest.of(0, 20);
-        }
-        
-        log.debug("Building pageable: page={}, size={}", pageRequest.getPage(), pageRequest.getSize());
-        
-        Sort sort = Sort.unsorted();
-        if (pageRequest.getSorts() != null && !pageRequest.getSorts().isEmpty()) {
-            Sort.Order[] orders = pageRequest.getSorts().stream()
-                .map(s -> {
-                    log.trace("Adding sort: {} {}", s.getField(), s.getDirection());
-                    return s.getDirection() == PageRequest.SortCriteria.SortDirection.DESC
-                        ? Sort.Order.desc(s.getField())
-                        : Sort.Order.asc(s.getField());
-                })
-                .toArray(Sort.Order[]::new);
-            sort = Sort.by(orders);
-        }
-        
-        return org.springframework.data.domain.PageRequest.of(
-            pageRequest.getPage(), 
-            pageRequest.getSize(), 
-            sort
-        );
     }
 }

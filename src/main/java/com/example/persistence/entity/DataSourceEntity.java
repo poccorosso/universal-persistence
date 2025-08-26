@@ -45,7 +45,7 @@ public class DataSourceEntity {
     private String databaseName;
     
     @Column(nullable = false)
-    private String username;
+    private String uid;
     
     @Column(nullable = false)
     private String password;
@@ -57,21 +57,27 @@ public class DataSourceEntity {
     private String driverClassName;
     
     @Column(name = "max_pool_size")
+    @Builder.Default
     private Integer maxPoolSize = 10;
     
     @Column(name = "min_pool_size")
+    @Builder.Default
     private Integer minPoolSize = 1;
     
     @Column(name = "connection_timeout")
+    @Builder.Default
     private Integer connectionTimeout = 30000; // 30 seconds
     
     @Column(name = "idle_timeout")
+    @Builder.Default
     private Integer idleTimeout = 600000; // 10 minutes
     
     @Column(name = "max_lifetime")
+    @Builder.Default
     private Integer maxLifetime = 1800000; // 30 minutes
     
     @Column(name = "query_timeout")
+    @Builder.Default
     private Integer queryTimeout = 30; // 30 seconds
     
     @Builder.Default
@@ -89,6 +95,12 @@ public class DataSourceEntity {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Column(name = "created_by")
+    private String createdBy;
+
+    @Column(name = "updated_by")
+    private String updatedBy;
     
     public enum DatabaseType {
         SQLSERVER("com.microsoft.sqlserver.jdbc.SQLServerDriver", "jdbc:sqlserver://{host}:{port};databaseName={database}"),
