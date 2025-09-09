@@ -108,22 +108,27 @@ public class WhereBuilder<T> {
             return criteriaBuilder.lessThanOrEqualTo((Path<Comparable>) path, value);
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate like(String pattern) {
             return criteriaBuilder.like((Path<String>) path, pattern);
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate notLike(String pattern) {
             return criteriaBuilder.notLike((Path<String>) path, pattern);
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate contains(String value) {
             return criteriaBuilder.like((Path<String>) path, "%" + value + "%");
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate startsWith(String value) {
             return criteriaBuilder.like((Path<String>) path, value + "%");
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate endsWith(String value) {
             return criteriaBuilder.like((Path<String>) path, "%" + value);
         }
@@ -164,14 +169,17 @@ public class WhereBuilder<T> {
         }
 
         // String-specific methods
+        @SuppressWarnings("unchecked")
         public Predicate isEmpty() {
             return criteriaBuilder.equal((Path<String>) path, "");
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate isNotEmpty() {
             return criteriaBuilder.notEqual((Path<String>) path, "");
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate equalsIgnoreCase(String value) {
             return criteriaBuilder.equal(
                 criteriaBuilder.upper((Path<String>) path),
@@ -179,6 +187,7 @@ public class WhereBuilder<T> {
             );
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate containsIgnoreCase(String value) {
             return criteriaBuilder.like(
                 criteriaBuilder.upper((Path<String>) path),
@@ -186,6 +195,7 @@ public class WhereBuilder<T> {
             );
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate startsWithIgnoreCase(String value) {
             return criteriaBuilder.like(
                 criteriaBuilder.upper((Path<String>) path),
@@ -193,6 +203,7 @@ public class WhereBuilder<T> {
             );
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate endsWithIgnoreCase(String value) {
             return criteriaBuilder.like(
                 criteriaBuilder.upper((Path<String>) path),
@@ -205,10 +216,12 @@ public class WhereBuilder<T> {
             return criteriaBuilder.equal(path, 0);
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate isPositive() {
             return criteriaBuilder.greaterThan((Path<Comparable>) path, (Comparable) 0);
         }
 
+        @SuppressWarnings("unchecked")
         public Predicate isNegative() {
             return criteriaBuilder.lessThan((Path<Comparable>) path, (Comparable) 0);
         }

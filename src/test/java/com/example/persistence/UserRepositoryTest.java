@@ -30,27 +30,21 @@ class UserRepositoryTest {
         // Create test data
         List<User> users = Arrays.asList(
                 User.builder()
-                        .username("john_doe")
+                        .uid("john_doe")
                         .email("john@example.com")
                         .fullName("John Doe")
-                        .age(25)
-                        .status(User.Status.ACTIVE)
                         .deleted(false)
                         .build(),
                 User.builder()
-                        .username("jane_smith")
+                        .uid("jane_smith")
                         .email("jane@example.com")
                         .fullName("Jane Smith")
-                        .age(30)
-                        .status(User.Status.ACTIVE)
                         .deleted(false)
                         .build(),
                 User.builder()
-                        .username("bob_wilson")
+                        .uid("bob_wilson")
                         .email("bob@example.com")
                         .fullName("Bob Wilson")
-                        .age(35)
-                        .status(User.Status.INACTIVE)
                         .deleted(false)
                         .build()
         );
@@ -62,11 +56,9 @@ class UserRepositoryTest {
     void testBasicCrud() {
         // Test basic CRUD operations
         User user = User.builder()
-                .username("test_user")
+                .uid("test_user")
                 .email("test@example.com")
                 .fullName("Test User")
-                .age(28)
-                .status(User.Status.ACTIVE)
                 .deleted(false)
                 .build();
 
@@ -77,12 +69,12 @@ class UserRepositoryTest {
         // Read
         User found = userRepository.findById(saved.getId()).orElse(null);
         assertThat(found).isNotNull();
-        assertThat(found.getUsername()).isEqualTo("test_user");
+        assertThat(found.getUid()).isEqualTo("test_user");
 
         // Update
-        found.setAge(29);
+        found.setFullName("test 2");
         User updated = userRepository.createOrUpdate(found);
-        assertThat(updated.getAge()).isEqualTo(29);
+        assertThat(updated.getFullName()).isEqualTo("test 2");
 
         // Delete
         userRepository.delete(updated);
@@ -93,11 +85,9 @@ class UserRepositoryTest {
     void testSoftDelete() {
         // Test soft delete functionality
         User user = User.builder()
-                .username("soft_delete_user")
+                .uid("soft_delete_user")
                 .email("softdelete@example.com")
                 .fullName("Soft Delete User")
-                .age(28)
-                .status(User.Status.ACTIVE)
                 .deleted(false)
                 .build();
 
@@ -122,9 +112,9 @@ class UserRepositoryTest {
         // Test filter query
         List<FilterCriteria> filters = Arrays.asList(
                 FilterCriteria.builder()
-                        .field("status")
+                        .field("uid")
                         .operator(FilterCriteria.FilterOperator.EQUALS)
-                        .value(User.Status.ACTIVE)
+                        .value("jane_smith")
                         .build(),
                 FilterCriteria.builder()
                         .field("age")
@@ -136,7 +126,7 @@ class UserRepositoryTest {
 
         List<User> result = userRepository.findByFilters(filters);
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).getUsername()).isEqualTo("jane_smith");
+        assertThat(result.get(0).getUid()).isEqualTo("jane_smith");
     }
 
     @Test
@@ -164,9 +154,6 @@ class UserRepositoryTest {
         PageResponse<User> result = userRepository.findByFiltersWithPage(filters, pageRequest);
         assertThat(result.getContent()).hasSize(2);
         assertThat(result.getTotalElements()).isEqualTo(3);
-        assertThat(result.getContent().get(0).getAge()).isGreaterThan(
-                result.getContent().get(1).getAge()
-        );
     }
 
     @Test
@@ -176,7 +163,6 @@ class UserRepositoryTest {
                 FilterCriteria.builder()
                         .field("status")
                         .operator(FilterCriteria.FilterOperator.EQUALS)
-                        .value(User.Status.ACTIVE)
                         .build()
         );
 
@@ -254,6 +240,5 @@ class UserRepositoryTest {
 
         List<User> result = userRepository.findByFilters(filters);
         assertThat(result).hasSize(2);
-        assertThat(result).allMatch(user -> user.getAge() > 20 && user.getAge() <= 30);
     }
 }

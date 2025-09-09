@@ -3,7 +3,6 @@ package com.example.persistence;
 import com.example.persistence.dto.FilterCriteria;
 import com.example.persistence.entity.User;
 import com.example.persistence.repository.UserRepository;
-import com.example.persistence.util.LinqQueryBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,8 +11,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**

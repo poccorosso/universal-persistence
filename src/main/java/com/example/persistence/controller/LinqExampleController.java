@@ -1,8 +1,5 @@
 package com.example.persistence.controller;
 
-import com.example.persistence.dto.BaseResponse;
-import com.example.persistence.dto.UserProjection;
-import com.example.persistence.entity.DataSourceEntity;
 import com.example.persistence.entity.User;
 import com.example.persistence.service.LinqExampleService;
 import lombok.RequiredArgsConstructor;
@@ -65,75 +62,5 @@ public class LinqExampleController {
         log.info("API: Finding users with names starting with: {}", letter);
         List<User> users = linqExampleService.findUsersByNameStartingWith(letter);
         return ResponseEntity.ok(users);
-    }
-
-    /**
-     * Get user basic info using Select
-     */
-    @GetMapping("/user-basic-info")
-    public ResponseEntity<BaseResponse<List<Map<String, Object>>>> getUserBasicInfo() {
-        log.info("API: Getting user basic info using LINQ Select");
-        try {
-            List<Map<String, Object>> users = linqExampleService.getUserBasicInfo();
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Retrieved basic info for %d users", users.size())));
-        } catch (Exception e) {
-            log.error("Error getting user basic info", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get user basic info"));
-        }
-    }
-    
-    /**
-     * Get user projections using Select
-     */
-    @GetMapping("/user-projections")
-    public ResponseEntity<BaseResponse<List<UserProjection>>> getUserProjections() {
-        log.info("API: Getting user projections using LINQ Select");
-        try {
-            List<UserProjection> users = linqExampleService.getUserProjections();
-            return ResponseEntity.ok(BaseResponse.success(users, 
-                String.format("Retrieved %d user projections", users.size())));
-        } catch (Exception e) {
-            log.error("Error getting user projections", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to get user projections"));
-        }
-    }
-    
-    /**
-     * Get all uids using Select
-     */
-    @GetMapping("/uids")
-    public ResponseEntity<List<String>> getAllUids() {
-        log.info("API: Getting all uids using LINQ Select");
-        List<String> usernames = linqExampleService.getAllUids();
-        return ResponseEntity.ok(usernames);
-    }
-    
-    /**
-     * Get user basic info with pagination using Select
-     */
-    @GetMapping("/user-basic-info-paginated")
-    public ResponseEntity<Page<Map<String, Object>>> getUserBasicInfoWithPagination(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        log.info("API: Getting user basic info with pagination using LINQ Select");
-        Page<Map<String, Object>> users = linqExampleService.getUserBasicInfoWithPagination(page, size);
-        return ResponseEntity.ok(users);
-    }
-
-    /**
-     * Find active data sources by type
-     */
-    @GetMapping("/active-datasources/{type}")
-    public ResponseEntity<BaseResponse<List<DataSourceEntity>>> findActiveDataSourcesByType(@PathVariable DataSourceEntity.DatabaseType type) {
-        log.info("API: Finding active data sources by type: {}", type);
-        try {
-            List<DataSourceEntity> dataSources = linqExampleService.findActiveDataSourcesByType(type);
-            return ResponseEntity.ok(BaseResponse.success(dataSources,
-                    String.format("Found %d active data sources of type %s", dataSources.size(), type)));
-        } catch (Exception e) {
-            log.error("Error finding active data sources by type", e);
-            return ResponseEntity.internalServerError().body(BaseResponse.serverError("Failed to find data sources"));
-        }
     }
 }

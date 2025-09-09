@@ -98,6 +98,8 @@ public class DataSourceConnectionService {
             case DENODO:
                 config.addDataSourceProperty("queryTimeout", dataSourceEntity.getQueryTimeout());
                 break;
+            default:
+                break;
         }
     }
     
